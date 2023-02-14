@@ -1,5 +1,5 @@
-use sunscreen_bulletproofs as bulletproofs;
 use bulletproofs::{BulletproofGens, PedersenGens};
+use sunscreen_bulletproofs as bulletproofs;
 
 #[macro_use]
 extern crate criterion;

@@ -10,13 +10,13 @@ extern crate rand;
 
 use core::iter;
 
-use sunscreen_bulletproofs as bulletproofs;
 use bulletproofs::LinearProof;
 use bulletproofs::{BulletproofGens, PedersenGens};
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::VartimeMultiscalarMul;
 use merlin::Transcript;
+use sunscreen_bulletproofs as bulletproofs;
 
 /// Different linear proof vector lengths to try
 static TEST_SIZES: [usize; 5] = [64, 128, 256, 512, 1024];

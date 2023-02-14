@@ -4,7 +4,6 @@ extern crate curve25519_dalek;
 extern crate merlin;
 extern crate rand;
 
-use sunscreen_bulletproofs as bulletproofs;
 use bulletproofs::r1cs::*;
 use bulletproofs::{BulletproofGens, PedersenGens};
 use curve25519_dalek::ristretto::CompressedRistretto;
@@ -12,6 +11,7 @@ use curve25519_dalek::scalar::Scalar;
 use merlin::Transcript;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
+use sunscreen_bulletproofs as bulletproofs;
 
 // Shuffle gadget (documented in markdown file)
 
