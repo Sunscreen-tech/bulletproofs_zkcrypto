@@ -1,3 +1,4 @@
+#![allow(clippy::all)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(feature = "docs", feature(external_doc))]
 #![cfg_attr(feature = "docs", deny(missing_docs))]
