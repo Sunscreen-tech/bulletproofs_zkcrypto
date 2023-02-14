@@ -37,9 +37,10 @@ bincode = "1"
 rand_chacha = "0.3"
 
 [features]
-default = ["std"]
+default = ["std", "u64_backend"]
+u64_backend = ["curve25519-dalek/u64_backend"]
 yoloproofs = []
-std = ["rand", "rand/std", "rand/std_rng", "thiserror"]
+std = ["rand", "rand/std", "rand/std_rng", "thiserror", "curve25519-dalek/alloc"]
 nightly = ["curve25519-dalek/alloc", "subtle/nightly", "clear_on_drop/nightly"]
 docs = ["nightly"]
 
@@ -54,7 +55,6 @@ required-features = ["yoloproofs"]
 [[bench]]
 name = "range_proof"
 harness = false
-required-features = ["avx2_backend"]
 
 [[bench]]
 name = "generators"
@@ -63,7 +63,7 @@ harness = false
 [[bench]]
 name = "r1cs"
 harness = false
-required-features = ["yoloproofs", "avx2_backend"]
+required-features = ["yoloproofs"]
 
 [[bench]]
 name = "linear_proof"

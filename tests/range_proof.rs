@@ -7,6 +7,7 @@ use curve25519_dalek::scalar::Scalar;
 
 use merlin::Transcript;
 
+use sunscreen_bulletproofs as bulletproofs;
 use bulletproofs::{BulletproofGens, PedersenGens, RangeProof};
 
 use hex;

@@ -10,6 +10,7 @@ use curve25519_dalek::scalar::Scalar;
 
 use merlin::Transcript;
 
+use sunscreen_bulletproofs as bulletproofs;
 use bulletproofs::RangeProof;
 use bulletproofs::{BulletproofGens, PedersenGens};
 

@@ -1,3 +1,4 @@
+use sunscreen_bulletproofs as bulletproofs;
 use bulletproofs::{BulletproofGens, PedersenGens};
 
 #[macro_use]

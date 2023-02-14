@@ -37,6 +37,8 @@ pub struct PedersenGens {
 impl PedersenGens {
     /// Creates a Pedersen commitment using the value scalar and a blinding factor.
     pub fn commit(&self, value: Scalar, blinding: Scalar) -> RistrettoPoint {
+        <RistrettoPoint as MultiscalarMul>::multiscalar_mul(&[value, blinding], &[self.B, self.B_blinding]);
+
         RistrettoPoint::multiscalar_mul(&[value, blinding], &[self.B, self.B_blinding])
     }
 }

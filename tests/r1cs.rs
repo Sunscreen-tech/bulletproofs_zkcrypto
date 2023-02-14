@@ -1,10 +1,10 @@
 #![allow(non_snake_case)]
 
-extern crate bulletproofs;
 extern crate curve25519_dalek;
 extern crate merlin;
 extern crate rand;
 
+use sunscreen_bulletproofs as bulletproofs;
 use bulletproofs::r1cs::*;
 use bulletproofs::{BulletproofGens, PedersenGens};
 use curve25519_dalek::ristretto::CompressedRistretto;
@@ -256,7 +256,7 @@ fn example_gadget_proof(
 
     // 2. Commit high-level variables
     let (commitments, vars): (Vec<_>, Vec<_>) = [a1, a2, b1, b2, c1]
-        .into_iter()
+        .iter()
         .map(|x| prover.commit(Scalar::from(*x), Scalar::random(&mut thread_rng())))
         .unzip();
 

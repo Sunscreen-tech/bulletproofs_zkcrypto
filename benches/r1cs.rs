@@ -13,11 +13,11 @@ use criterion::Criterion;
 // someone wants to figure a way to use #[path] attributes or
 // something to avoid the duplication.
 
-extern crate bulletproofs;
 extern crate curve25519_dalek;
 extern crate merlin;
 extern crate rand;
 
+use sunscreen_bulletproofs as bulletproofs;
 use bulletproofs::r1cs::*;
 use bulletproofs::{BulletproofGens, PedersenGens};
 use curve25519_dalek::ristretto::CompressedRistretto;
