@@ -1,3 +1,4 @@
+#![allow(clippy::all)]
 #![allow(deprecated)]
 #![allow(non_snake_case)]
 #[macro_use]
