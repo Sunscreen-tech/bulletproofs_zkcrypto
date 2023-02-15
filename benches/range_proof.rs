@@ -1,9 +1,9 @@
+#![allow(deprecated)]
 #![allow(non_snake_case)]
 #[macro_use]
 extern crate criterion;
 use criterion::Criterion;
 
-use rand;
 use rand::Rng;
 
 use curve25519_dalek::scalar::Scalar;

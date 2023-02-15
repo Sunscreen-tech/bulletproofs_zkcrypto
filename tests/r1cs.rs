@@ -1,3 +1,4 @@
+#![allow(clippy::all)]
 #![allow(non_snake_case)]
 
 extern crate curve25519_dalek;

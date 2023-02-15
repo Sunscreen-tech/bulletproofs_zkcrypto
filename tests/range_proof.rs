@@ -1,3 +1,6 @@
+#![allow(clippy::all)]
+#![allow(deprecated)]
+
 use rand_core::SeedableRng;
 
 use rand_chacha::ChaChaRng;

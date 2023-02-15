@@ -1,3 +1,4 @@
+#![allow(clippy::all)]
 #![allow(non_snake_case)]
 
 #[macro_use]
@@ -22,6 +23,7 @@ use sunscreen_bulletproofs as bulletproofs;
 static TEST_SIZES: [usize; 5] = [64, 128, 256, 512, 1024];
 
 fn create_linear_proof_helper(c: &mut Criterion) {
+    #[allow(deprecated)]
     c.bench_function_over_inputs(
         "linear proof creation",
         move |bench, n| {
@@ -99,6 +101,7 @@ criterion_group! {
 }
 
 fn linear_verify(c: &mut Criterion) {
+    #[allow(deprecated)]
     c.bench_function_over_inputs(
         "linear proof verification",
         move |bench, n| {
