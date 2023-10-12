@@ -122,6 +122,7 @@ impl<T: BorrowMut<Transcript>> ConstraintSystem for Verifier<T> {
     fn metrics(&self) -> Metrics {
         Metrics {
             multipliers: self.num_vars,
+            pending_multiplier: self.pending_multiplier.is_some(),
             constraints: self.constraints.len() + self.deferred_constraints.len(),
             phase_one_constraints: self.constraints.len(),
             phase_two_constraints: self.deferred_constraints.len(),

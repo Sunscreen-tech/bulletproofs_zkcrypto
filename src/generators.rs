@@ -165,6 +165,34 @@ impl BulletproofGens {
         gens
     }
 
+    /// Generate a set of generators for a single party where some of the
+    /// generators are shared with another proof system.
+    pub fn new_single_party_with_shared_generators(
+        gens_capacity: usize,
+        shared_generators: &[RistrettoPoint],
+        insertion_point: usize,
+        left_side: bool,
+    ) -> Self {
+        let mut gens = Self::new(gens_capacity, 1);
+
+        let mut index = insertion_point;
+        let mut left_side = left_side;
+
+        // Insert the shared generators.
+        for gen in shared_generators.iter() {
+            if left_side {
+                gens.G_vec[0][index] = gen.clone();
+                left_side = false;
+                index -= 1;
+            } else {
+                gens.H_vec[0][index] = gen.clone();
+                left_side = true;
+            }
+        }
+
+        gens
+    }
+
     /// Returns j-th share of generators, with an appropriate
     /// slice of vectors G and H for the j-th range proof.
     pub fn share(&self, j: usize) -> BulletproofGensShare<'_> {

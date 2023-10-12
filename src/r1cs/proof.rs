@@ -34,6 +34,8 @@ const TWO_PHASE_COMMITMENTS: u8 = 1;
 #[derive(Clone, Debug)]
 #[allow(non_snake_case)]
 pub struct R1CSProof {
+    /// Shared part of the proof
+    pub(super) A_I1_shared: CompressedRistretto,
     /// Commitment to the values of input wires in the first phase.
     pub(super) A_I1: CompressedRistretto,
     /// Commitment to the values of output wires in the first phase.
@@ -68,6 +70,11 @@ pub struct R1CSProof {
 }
 
 impl R1CSProof {
+    /// Pull out A_I1_shared
+    pub fn A_I1_shared(&self) -> CompressedRistretto {
+        self.A_I1_shared.clone()
+    }
+
     /// Serializes the proof into a byte array of 1 version byte + \\((13 or 16) + 2k\\) 32-byte elements,
     /// where \\(k=\lceil \log_2(n) \rceil\\) and \\(n\\) is the number of multiplication gates.
     ///
@@ -84,11 +91,13 @@ impl R1CSProof {
         let mut buf = Vec::with_capacity(self.serialized_size());
         if self.missing_phase2_commitments() {
             buf.push(ONE_PHASE_COMMITMENTS);
+            buf.extend_from_slice(self.A_I1_shared.as_bytes());
             buf.extend_from_slice(self.A_I1.as_bytes());
             buf.extend_from_slice(self.A_O1.as_bytes());
             buf.extend_from_slice(self.S1.as_bytes());
         } else {
             buf.push(TWO_PHASE_COMMITMENTS);
+            buf.extend_from_slice(self.A_I1_shared.as_bytes());
             buf.extend_from_slice(self.A_I1.as_bytes());
             buf.extend_from_slice(self.A_O1.as_bytes());
             buf.extend_from_slice(self.S1.as_bytes());
@@ -156,6 +165,7 @@ impl R1CSProof {
             }};
         }
 
+        let A_I1_shared = CompressedRistretto(read32!());
         let A_I1 = CompressedRistretto(read32!());
         let A_O1 = CompressedRistretto(read32!());
         let S1 = CompressedRistretto(read32!());
@@ -185,6 +195,7 @@ impl R1CSProof {
         let ipp_proof = InnerProductProof::from_bytes(slice).map_err(|_| R1CSError::FormatError)?;
 
         Ok(R1CSProof {
+            A_I1_shared,
             A_I1,
             A_O1,
             S1,

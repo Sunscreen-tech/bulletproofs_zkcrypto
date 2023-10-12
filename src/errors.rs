@@ -152,6 +152,13 @@ pub enum R1CSError {
         /// The description of the reasons for the error.
         description: String,
     },
+
+    /// Occurs when the shared length is greater than the number of inputs
+    #[cfg_attr(
+        feature = "std",
+        error("Invalid shared length, shared length is greater than the number of inputs")
+    )]
+    InvalidSharedLength,
 }
 
 #[cfg(feature = "yoloproofs")]
