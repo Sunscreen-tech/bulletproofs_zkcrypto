@@ -171,12 +171,12 @@ impl BulletproofGens {
         gens_capacity: usize,
         shared_generators: &[RistrettoPoint],
         insertion_point: usize,
-        left_side: bool,
+        right_side_allocated: bool,
     ) -> Self {
         let mut gens = Self::new(gens_capacity, 1);
 
         let mut index = insertion_point;
-        let mut left_side = left_side;
+        let mut left_side = !right_side_allocated;
 
         // Insert the shared generators.
         for gen in shared_generators.iter() {

@@ -5,8 +5,8 @@
 pub struct Metrics {
     /// Number of multiplicative constraints in the constraint system.
     pub multipliers: usize,
-    /// If the last multiplier was set explicitly.
-    pub pending_multiplier: bool,
+    /// Was the last multiplier right side was explicitly allocated?
+    pub final_multiplier_rhs_allocated: bool,
     /// Total number of linear constraints in the constraint system.
     pub constraints: usize,
     /// Number of linear constraints added in pre-randomization phase.

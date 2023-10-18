@@ -172,7 +172,7 @@ impl<'g, T: BorrowMut<Transcript>> ConstraintSystem for Prover<'g, T> {
     fn metrics(&self) -> Metrics {
         Metrics {
             multipliers: self.secrets.a_L.len(),
-            pending_multiplier: self.pending_multiplier.is_some(),
+            final_multiplier_rhs_allocated: self.final_multiplier_rhs_allocated(),
             constraints: self.constraints.len() + self.deferred_constraints.len(),
             phase_one_constraints: self.constraints.len(),
             phase_two_constraints: self.deferred_constraints.len(),
@@ -396,6 +396,17 @@ impl<'g, T: BorrowMut<Transcript>> Prover<'g, T> {
         }
     }
 
+    /// Check if the last multiplier right side has been explicitly allocated.
+    fn final_multiplier_rhs_allocated(&self) -> bool {
+        let unallocated = if let Some(i) = self.pending_multiplier {
+            i == (self.secrets.a_L.len() - 1)
+        } else {
+            false
+        };
+
+        !unallocated
+    }
+
     /// Consume this `ConstraintSystem` to produce a proof.
     pub fn prove(self, bp_gens: &BulletproofGens) -> Result<R1CSProof, R1CSError> {
         self.prove_and_return_transcript(bp_gens)
@@ -511,11 +522,9 @@ impl<'g, T: BorrowMut<Transcript>> Prover<'g, T> {
 
         // If there is a pending multiplier at the end, we can remove it without
         // changing the commitment.
-        if let Some(i) = self.pending_multiplier {
-            if i == n1 {
-                a_interleave.pop();
-                gens_interleave.pop();
-            }
+        if !self.final_multiplier_rhs_allocated() {
+            a_interleave.pop();
+            gens_interleave.pop();
         }
 
         // The last piece is the shared component, so we will commit to the
