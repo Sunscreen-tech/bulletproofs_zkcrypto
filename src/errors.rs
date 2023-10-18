@@ -6,6 +6,22 @@ use alloc::vec::Vec;
 #[cfg(feature = "std")]
 use thiserror::Error;
 
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "std", derive(Error))]
+pub enum BulletproofGensError {
+    #[cfg_attr(feature = "std", error("Not all generator lists have the same length"))]
+    InconsistentGeneratorsLength,
+
+    #[cfg_attr(
+        feature = "std",
+        error("G and H do not have the same number of parties")
+    )]
+    InconsistentPartyLength,
+
+    #[cfg_attr(feature = "std", error("Some generator lists are empty"))]
+    EmptyGenerators,
+}
+
 /// Represents an error in proof creation, verification, or parsing.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "std", derive(Error))]
