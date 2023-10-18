@@ -15,6 +15,8 @@ use curve25519_dalek::traits::MultiscalarMul;
 use digest::{ExtendableOutputDirty, Update, XofReader};
 use sha3::{Sha3XofReader, Sha3_512, Shake256};
 
+use crate::errors::BulletproofGensError;
+
 /// Represents a pair of base points for Pedersen commitments.
 ///
 /// The Bulletproofs implementation and API is designed to support
@@ -55,13 +57,13 @@ impl Default for PedersenGens {
 /// The `GeneratorsChain` creates an arbitrary-long sequence of
 /// orthogonal generators.  The sequence can be deterministically
 /// produced starting with an arbitrary point.
-struct GeneratorsChain {
+pub struct GeneratorsChain {
     reader: Sha3XofReader,
 }
 
 impl GeneratorsChain {
     /// Creates a chain of generators, determined by the hash of `label`.
-    fn new(label: &[u8]) -> Self {
+    pub fn new(label: &[u8]) -> Self {
         let mut shake = Shake256::default();
         shake.update(b"GeneratorsChain");
         shake.update(label);
@@ -73,7 +75,7 @@ impl GeneratorsChain {
 
     /// Advances the reader n times, squeezing and discarding
     /// the result.
-    fn fast_forward(mut self, n: usize) -> Self {
+    pub fn fast_forward(mut self, n: usize) -> Self {
         for _ in 0..n {
             let mut buf = [0u8; 64];
             self.reader.read(&mut buf);
@@ -163,6 +165,54 @@ impl BulletproofGens {
         };
         gens.increase_capacity(gens_capacity);
         gens
+    }
+
+    /// Create a new `BulletproofGens` object from a set of generators.
+    ///
+    /// # Inputs
+    ///
+    /// * `G` is a vector of generators for each party.
+    /// * `H` is a vector of generators for each party.
+    ///
+    /// The number of parties in `G` and `H` must be the same and the number of
+    /// generators in each party must be the same.
+    pub fn new_from_generators(
+        G: Vec<Vec<RistrettoPoint>>,
+        H: Vec<Vec<RistrettoPoint>>,
+    ) -> Result<Self, BulletproofGensError> {
+        // Perform checks that we indeed have a matrix of generators.
+        let party_capacity = G.len();
+
+        if H.len() != party_capacity {
+            return Err(BulletproofGensError::InconsistentPartyLength);
+        }
+
+        if party_capacity == 0 {
+            return Err(BulletproofGensError::EmptyGenerators);
+        }
+
+        let gens_capacity = G[0].len();
+
+        if gens_capacity == 0 {
+            return Err(BulletproofGensError::EmptyGenerators);
+        }
+
+        for i in 0..party_capacity {
+            if G[i].len() != gens_capacity {
+                return Err(BulletproofGensError::InconsistentGeneratorsLength);
+            }
+
+            if H[i].len() != gens_capacity {
+                return Err(BulletproofGensError::InconsistentGeneratorsLength);
+            }
+        }
+
+        Ok(BulletproofGens {
+            gens_capacity,
+            party_capacity,
+            G_vec: G,
+            H_vec: H,
+        })
     }
 
     /// Returns j-th share of generators, with an appropriate

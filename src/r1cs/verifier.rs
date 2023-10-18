@@ -122,6 +122,7 @@ impl<T: BorrowMut<Transcript>> ConstraintSystem for Verifier<T> {
     fn metrics(&self) -> Metrics {
         Metrics {
             multipliers: self.num_vars,
+            final_multiplier_rhs_allocated: self.final_multiplier_rhs_allocated(),
             constraints: self.constraints.len() + self.deferred_constraints.len(),
             phase_one_constraints: self.constraints.len(),
             phase_two_constraints: self.deferred_constraints.len(),
@@ -329,6 +330,17 @@ impl<T: BorrowMut<Transcript>> Verifier<T> {
             }
             Ok(wrapped_self.verifier)
         }
+    }
+
+    /// Check if the last multiplier right side has been explicitly allocated.
+    fn final_multiplier_rhs_allocated(&self) -> bool {
+        let unallocated = if let Some(i) = self.pending_multiplier {
+            i == self.num_vars - 1
+        } else {
+            false
+        };
+
+        !unallocated
     }
 
     /// Consume this `VerifierCS` and attempt to verify the supplied `proof`.

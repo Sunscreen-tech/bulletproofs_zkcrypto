@@ -6,6 +6,7 @@ use core::mem;
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::{Identity, MultiscalarMul};
+use itertools::interleave;
 use merlin::Transcript;
 
 use super::{
@@ -171,6 +172,7 @@ impl<'g, T: BorrowMut<Transcript>> ConstraintSystem for Prover<'g, T> {
     fn metrics(&self) -> Metrics {
         Metrics {
             multipliers: self.secrets.a_L.len(),
+            final_multiplier_rhs_allocated: self.final_multiplier_rhs_allocated(),
             constraints: self.constraints.len() + self.deferred_constraints.len(),
             phase_one_constraints: self.constraints.len(),
             phase_two_constraints: self.deferred_constraints.len(),
@@ -394,16 +396,56 @@ impl<'g, T: BorrowMut<Transcript>> Prover<'g, T> {
         }
     }
 
+    /// Check if the last multiplier right side has been explicitly allocated.
+    fn final_multiplier_rhs_allocated(&self) -> bool {
+        let unallocated = if let Some(i) = self.pending_multiplier {
+            i == (self.secrets.a_L.len() - 1)
+        } else {
+            false
+        };
+
+        !unallocated
+    }
+
     /// Consume this `ConstraintSystem` to produce a proof.
     pub fn prove(self, bp_gens: &BulletproofGens) -> Result<R1CSProof, R1CSError> {
         self.prove_and_return_transcript(bp_gens)
             .map(|(proof, _transcript)| proof)
     }
 
-    /// Consume this `ConstraintSystem` to produce a proof. Returns the proof and the transcript passed in `Prover::new`.
+    /// Consume this `ConstraintSystem` to produce a proof. Returns the proof
+    /// and the transcript passed in `Prover::new`.
     pub fn prove_and_return_transcript(
         mut self,
         bp_gens: &BulletproofGens,
+    ) -> Result<(R1CSProof, T), R1CSError> {
+        let mut rng = {
+            let mut builder = self.transcript.borrow_mut().build_rng();
+
+            // commit the blinding factors for the input wires
+            for v_b in &self.secrets.v_blinding {
+                builder = builder.rekey_with_witness_bytes(b"v_blinding", v_b.as_bytes());
+            }
+
+            // Since we use thread RNG here, we can expect that we will not get
+            // the same RNG values as in the larger
+            // `prove_with_parameters_and_return_transcript` function.
+            use rand::thread_rng;
+            builder.finalize(&mut thread_rng())
+        };
+        let i_blinding = Scalar::random(&mut rng);
+
+        self.prove_with_parameters_and_return_transcript(bp_gens, 0, &i_blinding)
+    }
+
+    /// Consume this `ConstraintSystem` to produce a proof with the given
+    /// parameters. Returns the proof and the transcript passed in
+    /// `Prover::new`.
+    pub fn prove_with_parameters_and_return_transcript(
+        mut self,
+        bp_gens: &BulletproofGens,
+        shared_length: usize,
+        blinding_factor: &Scalar,
     ) -> Result<(R1CSProof, T), R1CSError> {
         use crate::util;
         use std::iter;
@@ -448,26 +490,85 @@ impl<'g, T: BorrowMut<Transcript>> Prover<'g, T> {
             return Err(R1CSError::InvalidGeneratorsLength);
         }
 
+        // The shared length can not be longer than the number of inputs itself.
+        if shared_length > 2 * n1 {
+            return Err(R1CSError::InvalidSharedLength);
+        }
+
         // We are performing a single-party circuit proof, so party index is 0.
         let gens = bp_gens.share(0);
 
-        let i_blinding1 = Scalar::random(&mut rng);
+        let i_blinding1 = Scalar::from(2u64) * blinding_factor;
         let o_blinding1 = Scalar::random(&mut rng);
         let s_blinding1 = Scalar::random(&mut rng);
 
         let mut s_L1: Vec<Scalar> = (0..n1).map(|_| Scalar::random(&mut rng)).collect();
         let mut s_R1: Vec<Scalar> = (0..n1).map(|_| Scalar::random(&mut rng)).collect();
 
-        // A_I = <a_L, G> + <a_R, H> + i_blinding * B_blinding
-        let A_I1 = RistrettoPoint::multiscalar_mul(
-            iter::once(&i_blinding1)
-                .chain(self.secrets.a_L.iter())
-                .chain(self.secrets.a_R.iter()),
-            iter::once(&self.pc_gens.B_blinding)
-                .chain(gens.G(n1))
-                .chain(gens.H(n1)),
+        // A_I = <a_L, G> + <a_R, H> + i_blinding * B_blinding.
+        // This calculation is performed by interleaving the generators and
+        // inputs so that a continiguous, shared piece of the inputs can be
+        // committed to. In this case shared means shared with another proof
+        // system such as the SDLP.
+        let mut a_interleave = interleave(&self.secrets.a_L, &self.secrets.a_R)
+            .cloned()
+            .collect::<Vec<Scalar>>();
+        let mut gens_interleave = interleave(
+            &gens.G(n1).cloned().collect::<Vec<RistrettoPoint>>(),
+            &gens.H(n1).cloned().collect::<Vec<RistrettoPoint>>(),
         )
-        .compress();
+        .cloned()
+        .collect::<Vec<RistrettoPoint>>();
+
+        // If there is a pending multiplier at the end, we can remove it without
+        // changing the commitment.
+        if !self.final_multiplier_rhs_allocated() {
+            a_interleave.pop();
+            gens_interleave.pop();
+        }
+
+        // The last piece is the shared component, so we will commit to the
+        // inputs in two pieces.
+        let unshared_length = a_interleave.len() - shared_length;
+        let unshared_slice = 0..unshared_length;
+        let shared_slice = unshared_length..;
+
+        // Partition the inputs and generators
+        let a_interleave_unshared = &a_interleave[unshared_slice.clone()];
+        let a_interleave_shared = &a_interleave[shared_slice.clone()];
+
+        let gens_interleave_unshared = &gens_interleave[unshared_slice.clone()];
+        let gens_interleave_shared = &gens_interleave[shared_slice.clone()];
+
+        // Commit to each piece independently.
+        let A_I1_unshared = RistrettoPoint::multiscalar_mul(
+            iter::once(blinding_factor).chain(a_interleave_unshared.iter()),
+            iter::once(&self.pc_gens.B_blinding).chain(gens_interleave_unshared.iter()),
+        );
+        let A_I1_shared = RistrettoPoint::multiscalar_mul(
+            iter::once(blinding_factor).chain(a_interleave_shared.iter()),
+            iter::once(&self.pc_gens.B_blinding).chain(gens_interleave_shared.iter()),
+        );
+
+        // And then make the joint commitment
+        let A_I1 = A_I1_shared + A_I1_unshared;
+
+        if cfg!(debug_assertions) {
+            let A_I1_paper = RistrettoPoint::multiscalar_mul(
+                iter::once(&i_blinding1)
+                    .chain(self.secrets.a_L.iter())
+                    .chain(self.secrets.a_R.iter()),
+                iter::once(&self.pc_gens.B_blinding)
+                    .chain(gens.G(n1))
+                    .chain(gens.H(n1)),
+            );
+
+            assert_eq!(A_I1.compress(), A_I1_paper.compress());
+        }
+
+        // Compress for later storage in the proof.
+        let A_I1 = A_I1.compress();
+        let A_I1_shared = A_I1_shared.compress();
 
         // A_O = <a_O, G> + o_blinding * B_blinding
         let A_O1 = RistrettoPoint::multiscalar_mul(
@@ -709,6 +810,7 @@ impl<'g, T: BorrowMut<Transcript>> Prover<'g, T> {
             scalar.clear();
         }
         let proof = R1CSProof {
+            A_I1_shared,
             A_I1,
             A_O1,
             S1,

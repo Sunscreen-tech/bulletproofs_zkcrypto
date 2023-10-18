@@ -6,6 +6,22 @@ use alloc::vec::Vec;
 #[cfg(feature = "std")]
 use thiserror::Error;
 
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "std", derive(Error))]
+pub enum BulletproofGensError {
+    #[cfg_attr(feature = "std", error("Not all generator lists have the same length"))]
+    InconsistentGeneratorsLength,
+
+    #[cfg_attr(
+        feature = "std",
+        error("G and H do not have the same number of parties")
+    )]
+    InconsistentPartyLength,
+
+    #[cfg_attr(feature = "std", error("Some generator lists are empty"))]
+    EmptyGenerators,
+}
+
 /// Represents an error in proof creation, verification, or parsing.
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "std", derive(Error))]
@@ -152,6 +168,13 @@ pub enum R1CSError {
         /// The description of the reasons for the error.
         description: String,
     },
+
+    /// Occurs when the shared length is greater than the number of inputs
+    #[cfg_attr(
+        feature = "std",
+        error("Invalid shared length, shared length is greater than the number of inputs")
+    )]
+    InvalidSharedLength,
 }
 
 #[cfg(feature = "yoloproofs")]
