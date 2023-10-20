@@ -373,6 +373,7 @@ impl<T: BorrowMut<Transcript>> Verifier<T> {
         transcript.append_u64(b"m", self.V.len() as u64);
 
         let n1 = self.num_vars;
+        transcript.validate_and_append_point(b"A_I1_shared", &proof.A_I1_shared)?;
         transcript.validate_and_append_point(b"A_I1", &proof.A_I1)?;
         transcript.validate_and_append_point(b"A_O1", &proof.A_O1)?;
         transcript.validate_and_append_point(b"S1", &proof.S1)?;
