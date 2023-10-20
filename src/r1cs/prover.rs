@@ -589,6 +589,7 @@ impl<'g, T: BorrowMut<Transcript>> Prover<'g, T> {
         .compress();
 
         let transcript = self.transcript.borrow_mut();
+        transcript.append_point(b"A_I1_shared", &A_I1_shared);
         transcript.append_point(b"A_I1", &A_I1);
         transcript.append_point(b"A_O1", &A_O1);
         transcript.append_point(b"S1", &S1);
