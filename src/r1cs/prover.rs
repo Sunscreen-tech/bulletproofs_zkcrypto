@@ -527,18 +527,17 @@ impl<'g, T: BorrowMut<Transcript>> Prover<'g, T> {
             gens_interleave.pop();
         }
 
-        // The last piece is the shared component, so we will commit to the
+        // The first piece is the shared component, so we will commit to the
         // inputs in two pieces.
-        let unshared_length = a_interleave.len() - shared_length;
-        let unshared_slice = 0..unshared_length;
-        let shared_slice = unshared_length..;
+        let shared_slice = 0..shared_length;
+        let unshared_slice = shared_length..;
 
         // Partition the inputs and generators
-        let a_interleave_unshared = &a_interleave[unshared_slice.clone()];
         let a_interleave_shared = &a_interleave[shared_slice.clone()];
+        let a_interleave_unshared = &a_interleave[unshared_slice.clone()];
 
-        let gens_interleave_unshared = &gens_interleave[unshared_slice.clone()];
         let gens_interleave_shared = &gens_interleave[shared_slice.clone()];
+        let gens_interleave_unshared = &gens_interleave[unshared_slice.clone()];
 
         // Commit to each piece independently.
         let A_I1_unshared = RistrettoPoint::multiscalar_mul(
