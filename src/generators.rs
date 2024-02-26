@@ -28,7 +28,7 @@ use crate::errors::BulletproofGensError;
 /// * `B`: the `ristretto255` basepoint;
 /// * `B_blinding`: the result of `ristretto255` SHA3-512
 /// hash-to-group on input `B_bytes`.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Serialize, Deserialize)]
 pub struct PedersenGens {
     /// Base for the committed value
     pub B: RistrettoPoint,
@@ -131,7 +131,7 @@ impl Iterator for GeneratorsChain {
 /// chain, and even forward-compatible to multiparty aggregation of
 /// constraint system proofs, since the generators are namespaced by
 /// their party index.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct BulletproofGens {
     /// The maximum number of usable generators for each party.
     pub gens_capacity: usize,
